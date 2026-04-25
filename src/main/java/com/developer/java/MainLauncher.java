@@ -1,10 +1,16 @@
 package com.developer.java;
 
+import com.developer.java.model.Contact;
+import com.developer.java.repository.ContactRepository;
 import com.developer.java.ui.MainApp;
 import javafx.application.Application;
-import org.springframework.boot.SpringApplication;
+import javafx.stage.Stage;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class MainLauncher extends Application {
@@ -13,13 +19,20 @@ public class MainLauncher extends Application {
 
     @Override
     public void init() {
-        // This line actually starts the Spring web server and H2 console
-        springContext = SpringApplication.run(MainLauncher.class);
+        // We assign the result of the builder to our static springContext field
+        this.springContext = new SpringApplicationBuilder(MainLauncher.class)
+                .web(org.springframework.boot.WebApplicationType.SERVLET)
+                .run();
     }
 
     @Override
-    public void start(javafx.stage.Stage primaryStage) {
+    public void start(Stage primaryStage) {
         MainApp mainApp = new MainApp();
+
+        // Connect the Repository from Spring to the UI
+        ContactRepository repo = springContext.getBean(ContactRepository.class);
+        mainApp.setRepository(repo);
+
         mainApp.start(primaryStage);
     }
 
@@ -30,5 +43,15 @@ public class MainLauncher extends Application {
 
     public static void main(String[] args) {
         Application.launch(MainLauncher.class, args);
+    }
+    @Bean
+    public CommandLineRunner seedData(ContactRepository repo) {
+        return args -> {
+            if (repo.count() == 0) { // Only add if the DB is empty
+                repo.save(new Contact("John Doe", "john@example.com"));
+                repo.save(new Contact("Jane Smith", "jane@example.com"));
+                System.out.println("Database seeded with initial entries.");
+            }
+        };
     }
 }
