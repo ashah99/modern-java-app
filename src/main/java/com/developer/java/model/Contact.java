@@ -12,7 +12,7 @@ public class Contact {
 
     private String name;
     private String email;
-
+    private String category; // <-- New Field
     // Standard no-arg constructor (required by JPA)
     public Contact() {}
 
@@ -28,4 +28,6 @@ public class Contact {
     public void setName(String name) { this.name = name; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 }

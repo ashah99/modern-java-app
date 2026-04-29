@@ -73,21 +73,54 @@ public class MainApp extends Application {
         // --- BUTTONS & ACTIONS ---
         Button saveBtn = new Button("Add");
         saveBtn.setOnAction(e -> {
-            if (!nameInput.getText().isEmpty()) {
-                Contact c = new Contact(nameInput.getText(), emailInput.getText());
-                repository.save(c);
-                contactData.add(c);
-                nameInput.clear();
-                emailInput.clear();
+            String name = nameInput.getText().trim();
+            String email = emailInput.getText().trim();
+
+            if (name.isEmpty() || email.isEmpty()) {
+                Alert error = new Alert(Alert.AlertType.ERROR);
+                error.setContentText("Both Name and Email are required!");
+                error.showAndWait();
+                return;
             }
+
+            if (!email.contains("@")) {
+                Alert error = new Alert(Alert.AlertType.ERROR);
+                error.setContentText("Please enter a valid email address.");
+                error.showAndWait();
+                return;
+            }
+
+            Contact c = new Contact(name, email);
+            repository.save(c);
+            contactData.add(c);
+            nameInput.clear();
+            emailInput.clear();
         });
 
         Button deleteBtn = new Button("Delete");
         deleteBtn.setOnAction(e -> {
             Contact selected = table.getSelectionModel().getSelectedItem();
+
             if (selected != null) {
-                repository.delete(selected);
-                contactData.remove(selected);
+                // Create the Alert
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Delete Confirmation");
+                alert.setHeaderText("Removing: " + selected.getName());
+                alert.setContentText("Are you sure you want to delete this contact?");
+
+                // Show the dialog and wait for the user to click a button
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.OK) {
+                        repository.delete(selected);
+                        contactData.remove(selected);
+                    }
+                });
+            } else {
+                // Warning if nothing is selected
+                Alert warn = new Alert(Alert.AlertType.WARNING);
+                warn.setTitle("No Selection");
+                warn.setContentText("Please select a contact from the table first.");
+                warn.showAndWait();
             }
         });
 
