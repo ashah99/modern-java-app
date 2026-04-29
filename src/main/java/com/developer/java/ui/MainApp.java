@@ -28,6 +28,7 @@ public class MainApp extends Application {
     private TextField searchField = new TextField();
     private TextField nameInput = new TextField();
     private TextField emailInput = new TextField();
+    private ChoiceBox<String> categoryInput = new ChoiceBox<>();
 
     public void setRepository(ContactRepository repository) {
         this.repository = repository;
@@ -42,16 +43,26 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // --- TABLE SETUP ---
+// --- TABLE SETUP ---
+// --- UPDATED TABLE COLUMNS ---
         TableColumn<Contact, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
-        nameCol.setMinWidth(150);
+        nameCol.setMinWidth(120);
 
         TableColumn<Contact, String> emailCol = new TableColumn<>("Email");
         emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
-        emailCol.setMinWidth(200);
+        emailCol.setMinWidth(180);
 
-        table.getColumns().addAll(nameCol, emailCol);
+// NEW: Category Column
+        TableColumn<Contact, String> catCol = new TableColumn<>("Category");
+        catCol.setCellValueFactory(new PropertyValueFactory<>("category"));
+        catCol.setMinWidth(120);
+
+        categoryInput.getItems().addAll("Work", "Family", "Friends", "Table Tennis", "Other");
+        categoryInput.setValue("Other"); // Default value
+
+// Add all three to the table
+        table.getColumns().setAll(nameCol, emailCol, catCol);
 
         // --- SEARCH LOGIC (The FilteredList) ---
         // Wrap contactData in filteredData. The 'p -> true' means show all by default.
@@ -75,26 +86,36 @@ public class MainApp extends Application {
         saveBtn.setOnAction(e -> {
             String name = nameInput.getText().trim();
             String email = emailInput.getText().trim();
+            String category = categoryInput.getValue();
 
+            // Safety Logic: Check for empty fields
             if (name.isEmpty() || email.isEmpty()) {
-                Alert error = new Alert(Alert.AlertType.ERROR);
-                error.setContentText("Both Name and Email are required!");
-                error.showAndWait();
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Validation Error");
+                alert.setContentText("Name and Email cannot be empty!");
+                alert.showAndWait();
                 return;
             }
 
+            // Safety Logic: Basic Email Validation
             if (!email.contains("@")) {
-                Alert error = new Alert(Alert.AlertType.ERROR);
-                error.setContentText("Please enter a valid email address.");
-                error.showAndWait();
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Please enter a valid email address.");
+                alert.showAndWait();
                 return;
             }
 
+            // Create and Save
             Contact c = new Contact(name, email);
+            c.setCategory(category); // Set the new category
+
             repository.save(c);
             contactData.add(c);
+
+            // Clear inputs
             nameInput.clear();
             emailInput.clear();
+            categoryInput.setValue("Other");
         });
 
         Button deleteBtn = new Button("Delete");
@@ -129,9 +150,14 @@ public class MainApp extends Application {
 
         // --- UI LAYOUT ---
         HBox searchBox = new HBox(10, new Label("Search:"), searchField);
-        HBox inputBox = new HBox(10, nameInput, emailInput);
+       // HBox inputBox = new HBox(10, nameInput, emailInput);
         HBox actionBox = new HBox(10, saveBtn, deleteBtn, exitBtn);
-
+        HBox inputBox = new HBox(10,
+                new Label("Name:"), nameInput,
+                new Label("Email:"), emailInput,
+                new Label("Category:"), categoryInput
+        );
+        inputBox.setPadding(new Insets(10, 0, 10, 0));
         VBox mainLayout = new VBox(15);
         mainLayout.setPadding(new Insets(20));
         mainLayout.getChildren().addAll(
