@@ -145,18 +145,30 @@ public class MainApp extends Application {
             }
         });
 
+        Button refreshBtn = new Button("Refresh");
+        // Use your existing refreshGrid method
+        refreshBtn.setOnAction(e -> {
+            refreshGrid();
+
+            // Optional: Add a small status notification in the console
+            // or a temporary label so the user knows it happened.
+            System.out.println("Data manually refreshed from database.");
+        });
+
         Button exitBtn = new Button("Exit");
         exitBtn.setOnAction(e -> javafx.application.Platform.exit());
 
         // --- UI LAYOUT ---
         HBox searchBox = new HBox(10, new Label("Search:"), searchField);
        // HBox inputBox = new HBox(10, nameInput, emailInput);
-        HBox actionBox = new HBox(10, saveBtn, deleteBtn, exitBtn);
+        HBox actionBox = new HBox(10, saveBtn, deleteBtn, refreshBtn, exitBtn);
         HBox inputBox = new HBox(10,
                 new Label("Name:"), nameInput,
                 new Label("Email:"), emailInput,
                 new Label("Category:"), categoryInput
         );
+        // Updated actionBox with the Refresh button
+        actionBox.setPadding(new Insets(10, 0, 10, 0));
         inputBox.setPadding(new Insets(10, 0, 10, 0));
         VBox mainLayout = new VBox(15);
         mainLayout.setPadding(new Insets(20));
