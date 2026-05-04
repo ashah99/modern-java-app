@@ -18,7 +18,8 @@ import javafx.stage.Stage;
 public class MainApp extends Application {
 
     private ContactRepository repository;
-
+    // Add this field at the top of your class
+    private Contact selectedContact = null;
     // 1. DATA LISTS
     private final ObservableList<Contact> contactData = FXCollections.observableArrayList();
     private FilteredList<Contact> filteredData; // The "View" that handles searching
@@ -68,13 +69,19 @@ public class MainApp extends Application {
         // Wrap contactData in filteredData. The 'p -> true' means show all by default.
         filteredData = new FilteredList<>(contactData, p -> true);
 
-        searchField.setPromptText("Search by name...");
+        searchField.setPromptText("Search by name and category...");
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredData.setPredicate(contact -> {
                 if (newValue == null || newValue.isEmpty()) return true;
 
-                String lowerCaseFilter = newValue.toLowerCase();
-                return contact.getName().toLowerCase().contains(lowerCaseFilter);
+                String filter = newValue.toLowerCase();
+
+                // Search in BOTH Name and Category
+                boolean matchesName = contact.getName().toLowerCase().contains(filter);
+                boolean matchesCategory = (contact.getCategory() != null) &&
+                        contact.getCategory().toLowerCase().contains(filter);
+
+                return matchesName || matchesCategory;
             });
         });
 
@@ -88,12 +95,8 @@ public class MainApp extends Application {
             String email = emailInput.getText().trim();
             String category = categoryInput.getValue();
 
-            // Safety Logic: Check for empty fields
             if (name.isEmpty() || email.isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Validation Error");
-                alert.setContentText("Name and Email cannot be empty!");
-                alert.showAndWait();
+                new Alert(Alert.AlertType.WARNING, "Name and Email are required!").showAndWait();
                 return;
             }
 
@@ -105,17 +108,38 @@ public class MainApp extends Application {
                 return;
             }
 
-            // Create and Save
-            Contact c = new Contact(name, email);
-            c.setCategory(category); // Set the new category
+            if (selectedContact != null) {
+                // --- UPDATE EXISTING ---
+                selectedContact.setName(name);
+                selectedContact.setEmail(email);
+                selectedContact.setCategory(category);
 
-            repository.save(c);
-            contactData.add(c);
+                repository.save(selectedContact); // Hibernate updates the record in H2
+                table.refresh();                  // Refresh the UI display
+                selectedContact = null;           // Clear the selection
+                saveBtn.setText("Add");           // Reset button text
+            } else {
+                // --- ADD NEW ---
+                Contact c = new Contact(name, email);
+                c.setCategory(category);
+                repository.save(c);
+                contactData.add(c);
+            }
 
-            // Clear inputs
+            // Clear the fields
             nameInput.clear();
             emailInput.clear();
             categoryInput.setValue("Other");
+        });
+
+        Button clearBtn = new Button("Clear");
+        clearBtn.setOnAction(e -> {
+            selectedContact = null;
+            nameInput.clear();
+            emailInput.clear();
+            categoryInput.setValue("Other");
+            saveBtn.setText("Add");
+            table.getSelectionModel().clearSelection();
         });
 
         Button deleteBtn = new Button("Delete");
@@ -155,13 +179,26 @@ public class MainApp extends Application {
             System.out.println("Data manually refreshed from database.");
         });
 
+        table.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null) {
+                selectedContact = newSelection;
+                nameInput.setText(selectedContact.getName());
+                emailInput.setText(selectedContact.getEmail());
+                categoryInput.setValue(selectedContact.getCategory());
+
+                // Change button text to show we are in "Edit Mode"
+                saveBtn.setText("Update");
+            }
+        });
+
         Button exitBtn = new Button("Exit");
         exitBtn.setOnAction(e -> javafx.application.Platform.exit());
 
         // --- UI LAYOUT ---
         HBox searchBox = new HBox(10, new Label("Search:"), searchField);
        // HBox inputBox = new HBox(10, nameInput, emailInput);
-        HBox actionBox = new HBox(10, saveBtn, deleteBtn, refreshBtn, exitBtn);
+       // Add it to your actionBox
+        HBox actionBox = new HBox(10, saveBtn, deleteBtn, refreshBtn, clearBtn, exitBtn);
         HBox inputBox = new HBox(10,
                 new Label("Name:"), nameInput,
                 new Label("Email:"), emailInput,
